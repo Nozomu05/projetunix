@@ -33,17 +33,13 @@ ajouter_regle() {
   echo "\nAdresse IP destination (laisser vide pour tout) : " 
   read destination
 
-  cmd="iptables -A INPUT"
-  if [[ -n $source ]]; then
-    cmd+=" -s $source"
+  if [[ -n $source && -n $destination ]]; then
+    echo "Exécution"
+    iptables -A INPUT -s $source -d $destination -p $protocole --dport $port -j $action
+  else 
+    echo "Exécution"
+    iptables -A INPUT -p $protocole --dport $port -j $action
   fi
-  if [[ -n $destination ]]; then
-    cmd+=" -d $destination"
-  fi
-  cmd+=" -p $protocole --dport $port -j $action"
-
-  echo "Exécution : $cmd"
-  eval $cmd
   echo "Règle ajoutée."
 }
 
@@ -64,19 +60,13 @@ modifier_regle() {
   read destination
 
   iptables -D INPUT $numero
-
-  cmd="iptables -A INPUT"
-  if [[ -n $source ]]; then
-    cmd+=" -s $source"
+  if [[ -n $source && -n $destination ]]; then
+    iptables -A INPUT -s $source -d $destination -p $protocole --dport $port -j $action
+    echo "Exécution"
+  else
+    iptables -A INPUT -p $protocole --dport $port -j $action
+    echo "Règle ajoutée."
   fi
-  if [[ -n $destination ]]; then
-    cmd+=" -d $destination"
-  fi
-  cmd+=" -p $protocole --dport $port -j $action"
-
-  echo "Exécution : $cmd"
-  eval $cmd
-  echo "Règle modifiée."
 }
 
 
@@ -89,7 +79,7 @@ supprimer_regle() {
   echo "Règle supprimée."
 }
 
-echo -e "\nGestion des règle de pare-feu :"
+echo "\nGestion des règle de pare-feu :"
 echo "1) Ajouter une règle"
 echo "2) Modifier une règle"
 echo "3) Supprimer une règle"
@@ -117,7 +107,7 @@ configurer_nat() {
     if [ "$nat" = "oui" ]; then
         iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
     elif [ "$nat" = "non" ]; then 
-    	 iptables -t nat -D POSTROUTING -o eth0 -j MASQUERADE
+    	 iptables -t nat -D POSTROUTING -j MASQUERADE
     fi
 
     read -p "Rediriger un port (oui/non) ? : " port
@@ -141,8 +131,8 @@ activer_journalisation() {
     read -p "Activer la journalisation pour OUTPUT (oui/non) ? : " log_output
     if [ "$log_output" == "oui" ]; then
         iptables -A OUTPUT -j LOG --log-prefix "OUTPUT BLOCK: "
-    elif [ "$log_input" == "non" ]; then
-    	 iptables -D INPUT -j LOG --log-prefix "OUTPUT BLOCK: "
+    elif [ "$log_output" == "non" ]; then
+    	 iptables -D OUTPUT -j LOG --log-prefix "OUTPUT BLOCK: "
     fi
 }
 
